@@ -18,11 +18,16 @@ const GradeCalculator = ({
   );
 
   const calculateCurrentGrade = useCallback(() => {
-    const totalWeight = assignments.reduce(
+    const gradedAssignments = assignments.filter(
+      (assignment) => assignment.grade !== ""
+    );
+
+    const totalWeight = gradedAssignments.reduce(
       (sum, assignment) => sum + Number(assignment.weight),
       0
     );
-    const weightedSum = assignments.reduce((sum, assignment) => {
+
+    const weightedSum = gradedAssignments.reduce((sum, assignment) => {
       let grade = Number(assignment.grade);
       if (assignment.grade.includes("/")) {
         const [numerator, denominator] = assignment.grade
@@ -32,6 +37,7 @@ const GradeCalculator = ({
       }
       return sum + grade * Number(assignment.weight);
     }, 0);
+
     let average = totalWeight > 0 ? (weightedSum / totalWeight).toFixed(2) : 0;
     average = Math.min(average, 100);
     setCurrentGrade(average);
