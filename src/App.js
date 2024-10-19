@@ -200,13 +200,13 @@ const GradeCalculatorApp = () => {
     setCalculators((prevCalculators) => {
       const newId = Math.max(...prevCalculators.map((calc) => calc.id), 0) + 1;
       return [
-        ...prevCalculators,
         {
           id: newId,
           name: `Subject ${newId}`,
           assignments: [],
           currentGrade: 0,
         },
+        ...prevCalculators,
       ];
     });
   };
