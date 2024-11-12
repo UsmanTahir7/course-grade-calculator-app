@@ -5,6 +5,7 @@ import { Input } from "./components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "./components/ui/card";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const GradeCalculator = ({
   id,
@@ -258,6 +259,7 @@ const GradeCalculatorApp = () => {
         ))}
       </div>
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
