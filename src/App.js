@@ -26,8 +26,6 @@ const App = () => {
       "duration-200",
       "dark:bg-gray-900"
     );
-    document.body.style.backgroundColor =
-      savedTheme === "dark" ? "#111827" : "#ffffff";
   }, []);
 
   useEffect(() => {
@@ -43,8 +41,9 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    calculators.length > 0 &&
-      localStorage.setItem("calculators", JSON.stringify(calculators));
+    calculators.length > 0
+      ? localStorage.setItem("calculators", JSON.stringify(calculators))
+      : localStorage.removeItem("calculators");
   }, [calculators]);
 
   const addCalculator = () => {
