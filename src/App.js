@@ -22,8 +22,6 @@ const App = () => {
     document.documentElement.classList.toggle("dark", savedTheme === "dark");
     document.body.classList.add(
       "min-h-screen",
-      "transition-colors",
-      "duration-200",
       "dark:bg-gray-900"
     );
   }, []);
@@ -73,7 +71,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <header className="space-y-6 mb-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -123,7 +121,7 @@ const App = () => {
                     For feedback, suggestions and feature requests:{" "}
                     <a
                       href="mailto:coursegradecalculatorapp@gmail.com"
-                      className="underline cursor-pointer hover:text-teal-600 transition-colors inline-flex items-center gap-1"
+                      className="underline cursor-pointer hover:text-teal-600 inline-flex items-center gap-1"
                       onClick={(e) => {
                         e.preventDefault();
                         window.location.href =
@@ -140,7 +138,7 @@ const App = () => {
 
               <button
                 onClick={toggleTheme}
-                className="flex-shrink-0 p-3 min-h-[60px] flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                className="flex-shrink-0 p-3 min-h-[60px] flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
               >
                 {theme === "light" ? "🌙" : "☀️"}
               </button>

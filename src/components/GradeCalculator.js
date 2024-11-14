@@ -63,7 +63,7 @@ export const GradeCalculator = ({
   };
 
   return (
-    <Card className="h-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-200">
+    <Card className="h-full bg-white dark:bg-gray-800 shadow-md">
       <CardHeader className="space-y-2">
         <CardTitle className="flex justify-between items-center gap-4">
           <Input
