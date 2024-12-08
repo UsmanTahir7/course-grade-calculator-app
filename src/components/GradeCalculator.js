@@ -93,7 +93,14 @@ export const GradeCalculator = ({
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId={`droppable-${id}`} type="ASSIGNMENT">
             {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef}>
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                style={{
+                  minHeight: assignments.length > 0 ? "auto" : "100px",
+                }}
+              >
                 {assignments.map((assignment, index) => (
                   <Draggable
                     key={index}

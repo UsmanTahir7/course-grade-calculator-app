@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Menu, X } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
 import { AuthButton } from "./components/AuthButton";
 import { Button } from "./components/ui/button";
@@ -8,11 +8,19 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { SyncButton } from "./components/SyncButton";
 import { syncService } from "./services/syncService";
+import { SyllabusParseModal } from "./components/SyllabusParseModal";
+import { parseSyllabus } from "./utils/syllabusParser";
+import { AddSubjectModal } from "./components/AddSubjectModal";
+import { TipsModal } from "./components/TipsModal";
 
 const App = () => {
   const [calculators, setCalculators] = useState([]);
   const [theme, setTheme] = useState("light");
   const [showMergeOption, setShowMergeOption] = useState(false);
+  const [isSyllabusModalOpen, setIsSyllabusModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
+  const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
   const { user } = useAuth();
 
   const toggleTheme = () => {
@@ -90,14 +98,14 @@ const App = () => {
     }
   }, [calculators, user]);
 
-  const addCalculator = () => {
+  const addCalculator = (data) => {
     setCalculators((prev) => {
       const newId = Math.max(...prev.map((calc) => calc.id), 0) + 1;
       return [
         {
           id: newId,
-          name: `Subject ${newId}`,
-          assignments: [{ name: "", grade: "", weight: "" }],
+          name: data.name,
+          assignments: data.assignments,
           desiredGrade: "",
         },
         ...prev,
@@ -178,40 +186,94 @@ const App = () => {
     );
   }, []);
 
+  const handleSyllabusParse = (syllabusText) => {
+    const parsedAssignments = parseSyllabus(syllabusText);
+    if (Array.isArray(parsedAssignments) && parsedAssignments.length > 0) {
+      setCalculators((prev) => {
+        const newId = Math.max(...prev.map((calc) => calc.id), 0) + 1;
+        return [
+          {
+            id: newId,
+            name: `Subject ${newId}`,
+            assignments: parsedAssignments,
+            desiredGrade: "",
+          },
+          ...prev,
+        ];
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen w-full">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <header className="space-y-6 mb-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex-1 w-full sm:w-auto flex flex-row items-center justify-between gap-4">
-              <div className="p-3 min-h-[60px] flex items-center text-xs text-teal-800 dark:text-teal-400 bg-teal-50 dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2 flex-shrink-0"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                  </svg>
-                  <span>
-                    Tip: You can enter grades as fractions (e.g. 28/35 = 80%)
-                  </span>
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 rounded-lg dark:hover:bg-gray-800"
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+              ) : (
+                <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+              )}
+            </Button>
+
+            <div className="hidden lg:flex flex-1 items-center justify-between gap-4">
+              <TipsModal
+                isOpen={isTipsModalOpen}
+                onClose={() => setIsTipsModalOpen(!isTipsModalOpen)}
+              />
               <div className="flex items-center gap-2">
                 <AuthButton />
-                <button
+                <Button
                   onClick={toggleTheme}
-                  className="flex-shrink-0 p-3 min-h-[60px] flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                  className="flex-shrink-0 p-3 flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
                 >
                   {theme === "light" ? "🌙" : "☀️"}
-                </button>
+                </Button>
               </div>
             </div>
+
+            {isMenuOpen && (
+              <div className="lg:hidden fixed inset-0 z-50 min-h-fit h-auto bg-white dark:bg-gray-900">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <Button
+                    size="icon"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="dark:text-white text-gray-500"
+                  >
+                    <X className="h-6 w-6" />
+                  </Button>
+                  <div>
+                    <div className="flex justify-between items-center mt-2">
+                      <div className="h-[42px]">
+                        <TipsModal
+                          isOpen={isTipsModalOpen}
+                          onClose={() => setIsTipsModalOpen(!isTipsModalOpen)}
+                        />
+                      </div>
+
+                      <div className="flex gap-2 h-[42px]">
+                        <AuthButton />
+                        <Button
+                          onClick={toggleTheme}
+                          className="h-[42px] w-[42px] flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                        >
+                          {theme === "light" ? "🌙" : "☀️"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center">
+
+          <div className="flex items-center gap-2">
             <Button
-              onClick={addCalculator}
+              onClick={() => setIsAddSubjectModalOpen(true)}
               className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white shadow-sm"
             >
               <Plus className="mr-2 h-4 w-4" /> Add New Subject
@@ -233,6 +295,16 @@ const App = () => {
             />
           ))}
         </main>
+        <SyllabusParseModal
+          isOpen={isSyllabusModalOpen}
+          onClose={() => setIsSyllabusModalOpen(false)}
+          onParse={handleSyllabusParse}
+        />
+        <AddSubjectModal
+          isOpen={isAddSubjectModalOpen}
+          onClose={() => setIsAddSubjectModalOpen(false)}
+          onAdd={addCalculator}
+        />
         <Analytics />
         <SpeedInsights />
       </div>

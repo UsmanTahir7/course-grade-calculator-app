@@ -24,7 +24,7 @@ export function AuthButton() {
   return (
     <Button
       onClick={handleAuth}
-      className="dark:text-white flex-shrink-0 p-3 min-h-[60px] rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 flex items-center gap-2"
+      className="dark:text-white flex-shrink-0 p-3 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 flex items-center gap-2"
     >
       {user ? (
         <>
