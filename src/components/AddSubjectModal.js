@@ -118,9 +118,9 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                      className="max-h-[280px] mb-2 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
                       style={{
-                        minHeight: assignments.length > 0 ? "auto" : "100px",
+                        minHeight: assignments.length > 0 && "auto",
                       }}
                     >
                       {assignments.map((assignment, index) => (
@@ -133,7 +133,7 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700/50 group mb-2"
+                              className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700/50 group"
                             >
                               <div
                                 {...provided.dragHandleProps}
@@ -181,6 +181,7 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                                 className="w-[30%] dark:text-white bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <Button
+                                type="button" 
                                 className="dark:text-white"
                                 variant="destructive"
                                 size="icon"
@@ -197,33 +198,35 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                   )}
                 </Droppable>
               </DragDropContext>
-
-              <Button
-                type="button"
-                onClick={addRow}
-                variant="outline"
-                className="w-full border-dashed border-2 dark:text-white hover:border-solid hover:bg-teal-50 dark:hover:bg-teal-900/50"
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add Assignment
-              </Button>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              Add Subject
-            </Button>
-          </div>
+          <div className="space-y-4">
+  <Button
+    type="button"
+    onClick={addRow}
+    variant="outline"
+    className="w-full border-dashed border-2 dark:text-white hover:border-solid hover:bg-teal-50 dark:hover:bg-teal-900/50"
+  >
+    <Plus className="mr-2 h-4 w-4" /> Add Assignment
+  </Button>
+  
+  <div className="flex justify-end gap-2">
+    <Button
+      type="button"
+      onClick={onClose}
+      className="bg-gray-500 hover:bg-gray-600 text-white"
+    >
+      Cancel
+    </Button>
+    <Button
+      type="submit"
+      className="bg-teal-600 hover:bg-teal-700 text-white"
+    >
+      Add Subject
+    </Button>
+  </div>
+</div>
         </form>
       </div>
 

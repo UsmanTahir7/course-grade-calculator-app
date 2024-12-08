@@ -48,7 +48,11 @@ export const GradeCalculator = ({
 
   const handleDesiredGradeChange = (e) => {
     const value = e.target.value;
-    setDesiredGrade(Math.min(100, Math.max(0, Number(value))).toString());
+    if (value === "") {
+      setDesiredGrade("");
+    } else {
+      setDesiredGrade(Math.min(100, Math.max(0, Number(value))).toString());
+    }
   };
 
   const addRow = () => {
@@ -96,9 +100,9 @@ export const GradeCalculator = ({
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                className="max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
                 style={{
-                  minHeight: assignments.length > 0 ? "auto" : "100px",
+                  minHeight: assignments.length > 0 && "auto",
                 }}
               >
                 {assignments.map((assignment, index) => (

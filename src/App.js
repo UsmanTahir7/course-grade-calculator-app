@@ -11,7 +11,7 @@ import { syncService } from "./services/syncService";
 import { SyllabusParseModal } from "./components/SyllabusParseModal";
 import { parseSyllabus } from "./utils/syllabusParser";
 import { AddSubjectModal } from "./components/AddSubjectModal";
-import { TipsModal } from "./components/TipsModal";
+import { InfoModal } from "./components/InfoModal";
 
 const App = () => {
   const [calculators, setCalculators] = useState([]);
@@ -20,7 +20,8 @@ const App = () => {
   const [isSyllabusModalOpen, setIsSyllabusModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
-  const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [dataSource, setDataSource] = useState("local");
   const { user } = useAuth();
 
   const toggleTheme = () => {
@@ -59,6 +60,7 @@ const App = () => {
         if (user) {
           const cloudData = await syncService.loadFromCloud(user.uid);
           setCalculators(cloudData?.calculators || []);
+          setDataSource("cloud");
 
           const localData = JSON.parse(
             localStorage.getItem("calculators") || "[]"
@@ -74,6 +76,7 @@ const App = () => {
             localStorage.getItem("calculators") || "[]"
           );
           setCalculators(localData);
+          setDataSource("local");
           setShowMergeOption(false);
         }
       } catch (error) {
@@ -86,17 +89,17 @@ const App = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user && dataSource === "local") {
       if (calculators.length > 0) {
         localStorage.setItem("calculators", JSON.stringify(calculators));
       }
-    } else {
+    } else if (user && dataSource === "cloud") {
       const timeoutId = setTimeout(() => {
         syncService.saveToCloud(user.uid, calculators);
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [calculators, user]);
+  }, [calculators, user, dataSource]);
 
   const addCalculator = (data) => {
     setCalculators((prev) => {
@@ -211,7 +214,7 @@ const App = () => {
           <div className="flex items-center justify-between">
             <Button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 rounded-lg dark:hover:bg-gray-800"
+              className="lg:hidden p-2 rounded-lg"
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6 text-gray-700 dark:text-gray-200" />
@@ -221,9 +224,9 @@ const App = () => {
             </Button>
 
             <div className="hidden lg:flex flex-1 items-center justify-between gap-4">
-              <TipsModal
-                isOpen={isTipsModalOpen}
-                onClose={() => setIsTipsModalOpen(!isTipsModalOpen)}
+              <InfoModal
+                isOpen={isInfoModalOpen}
+                onClose={() => setIsInfoModalOpen(!isInfoModalOpen)}
               />
               <div className="flex items-center gap-2">
                 <AuthButton />
@@ -249,9 +252,9 @@ const App = () => {
                   <div>
                     <div className="flex justify-between items-center mt-2">
                       <div className="h-[42px]">
-                        <TipsModal
-                          isOpen={isTipsModalOpen}
-                          onClose={() => setIsTipsModalOpen(!isTipsModalOpen)}
+                        <InfoModal
+                          isOpen={isInfoModalOpen}
+                          onClose={() => setIsInfoModalOpen(!isInfoModalOpen)}
                         />
                       </div>
 

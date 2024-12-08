@@ -2,7 +2,7 @@ import React from "react";
 import { HelpCircle, X } from "lucide-react";
 import { Button } from "./ui/button";
 
-export function TipsModal({ isOpen, onClose }) {
+export function InfoModal({ isOpen, onClose }) {
   return (
     <>
       <Button
@@ -10,14 +10,14 @@ export function TipsModal({ isOpen, onClose }) {
         className="dark:text-white flex-shrink-0 p-3 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 flex items-center gap-2"
       >
         <HelpCircle className="h-4 w-4" />
-        Tips
+        Info
       </Button>
 
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-4 ring-1 ring-gray-200 dark:ring-gray-700">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold dark:text-white">Tips</h2>
+              <h2 className="text-xl font-bold dark:text-white">Information</h2>
               <Button
                 size="icon"
                 onClick={onClose}
