@@ -13,6 +13,7 @@ export const GradeCalculator = ({
   onNameChange,
   initialAssignments,
   initialDesiredGrade,
+  onDataChange,
 }) => {
   const [assignments, setAssignments] = useState(initialAssignments || []);
   const [desiredGrade, setDesiredGrade] = useState(initialDesiredGrade || "");
@@ -22,26 +23,31 @@ export const GradeCalculator = ({
   );
 
   useEffect(() => {
-    localStorage.setItem(
-      `gradeCalculator-${id}`,
-      JSON.stringify({ assignments, desiredGrade })
-    );
-  }, [assignments, desiredGrade, id]);
+    setAssignments(initialAssignments || []);
+    setDesiredGrade(initialDesiredGrade || "");
+  }, [initialAssignments, initialDesiredGrade]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onDataChange?.(id, {
+        assignments,
+        desiredGrade,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [assignments, desiredGrade, id, onDataChange]);
 
   const handleInputChange = (index, field, value) => {
-    const updatedAssignments = [...assignments];
-    if (field === "weight") {
-      value = Math.min(100, Math.max(0, Number(value))).toString();
-    }
-    updatedAssignments[index] = {
-      ...updatedAssignments[index],
-      [field]: value,
-    };
-    setAssignments(updatedAssignments);
+    setAssignments((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const handleDesiredGradeChange = (e) => {
-    const value = e.target.value
+    const value = e.target.value;
     setDesiredGrade(Math.min(100, Math.max(0, Number(value))).toString());
   };
 

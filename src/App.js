@@ -1,19 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { useAuth } from "./contexts/AuthContext";
+import { AuthButton } from "./components/AuthButton";
 import { Button } from "./components/ui/button";
 import { GradeCalculator } from "./components/GradeCalculator";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { SyncButton } from "./components/SyncButton";
+import { syncService } from "./services/syncService";
 
 const App = () => {
   const [calculators, setCalculators] = useState([]);
   const [theme, setTheme] = useState("light");
+  const [showMergeOption, setShowMergeOption] = useState(false);
+  const { user } = useAuth();
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
+
+  const isCalculatorDifferent = (calc1, calc2) => {
+    if (!calc1 || !calc2) return true;
+    if (calc1.name !== calc2.name) return true;
+    if (calc1.desiredGrade !== calc2.desiredGrade) return true;
+    if (calc1.assignments.length !== calc2.assignments.length) return true;
+
+    return calc1.assignments.some((assignment1, index) => {
+      const assignment2 = calc2.assignments[index];
+      return (
+        assignment1.name !== assignment2.name ||
+        assignment1.grade !== assignment2.grade ||
+        assignment1.weight !== assignment2.weight
+      );
+    });
   };
 
   useEffect(() => {
@@ -24,22 +46,49 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const savedCalculators = localStorage.getItem("calculators");
-    if (savedCalculators) {
-      const parsedCalculators = JSON.parse(savedCalculators);
-      const loadedCalculators = parsedCalculators.map((calc) => {
-        const savedData = localStorage.getItem(`gradeCalculator-${calc.id}`);
-        return savedData ? { ...calc, ...JSON.parse(savedData) } : calc;
-      });
-      setCalculators(loadedCalculators);
-    }
-  }, []);
+    const initializeData = async () => {
+      try {
+        if (user) {
+          const cloudData = await syncService.loadFromCloud(user.uid);
+          setCalculators(cloudData?.calculators || []);
+
+          const localData = JSON.parse(
+            localStorage.getItem("calculators") || "[]"
+          );
+          const hasDifferentLocal = localData.some((localCalc) => {
+            return !cloudData?.calculators?.some(
+              (cloudCalc) => !isCalculatorDifferent(localCalc, cloudCalc)
+            );
+          });
+          setShowMergeOption(hasDifferentLocal);
+        } else {
+          const localData = JSON.parse(
+            localStorage.getItem("calculators") || "[]"
+          );
+          setCalculators(localData);
+          setShowMergeOption(false);
+        }
+      } catch (error) {
+        console.error("Failed to initialize data:", error);
+        setCalculators([]);
+        setShowMergeOption(false);
+      }
+    };
+    initializeData();
+  }, [user]);
 
   useEffect(() => {
-    calculators.length > 0
-      ? localStorage.setItem("calculators", JSON.stringify(calculators))
-      : localStorage.removeItem("calculators");
-  }, [calculators]);
+    if (!user) {
+      if (calculators.length > 0) {
+        localStorage.setItem("calculators", JSON.stringify(calculators));
+      }
+    } else {
+      const timeoutId = setTimeout(() => {
+        syncService.saveToCloud(user.uid, calculators);
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [calculators, user]);
 
   const addCalculator = () => {
     setCalculators((prev) => {
@@ -56,16 +105,78 @@ const App = () => {
     });
   };
 
-  const removeCalculator = (id) => {
-    setCalculators((prev) => prev.filter((calc) => calc.id !== id));
-    localStorage.removeItem(`gradeCalculator-${id}`);
-  };
+  const removeCalculator = useCallback(
+    async (id) => {
+      setCalculators((prev) => {
+        const filtered = prev.filter((calc) => calc.id !== id);
+        if (user) {
+          syncService.saveToCloud(user.uid, filtered);
+        } else {
+          localStorage.setItem("calculators", JSON.stringify(filtered));
+        }
+        return filtered;
+      });
+    },
+    [user]
+  );
 
   const updateCalculatorName = (id, newName) => {
     setCalculators((prev) =>
       prev.map((calc) => (calc.id === id ? { ...calc, name: newName } : calc))
     );
   };
+
+  const handleSync = async () => {
+    if (!user) return;
+
+    try {
+      const localData = JSON.parse(localStorage.getItem("calculators") || "[]");
+      const cloudData = await syncService.loadFromCloud(user.uid);
+      const cloudCalculators = cloudData?.calculators || [];
+      const maxCloudId = Math.max(
+        ...cloudCalculators.map((calc) => calc.id),
+        0
+      );
+      let mergedCalculators = [...cloudCalculators];
+
+      localData.forEach((localCalc) => {
+        const hasMatchingContent = cloudCalculators.some(
+          (cloudCalc) =>
+            localCalc.name === cloudCalc.name &&
+            localCalc.desiredGrade === cloudCalc.desiredGrade &&
+            JSON.stringify(localCalc.assignments) ===
+              JSON.stringify(cloudCalc.assignments)
+        );
+
+        if (!hasMatchingContent) {
+          mergedCalculators.push({
+            ...localCalc,
+            id: maxCloudId + mergedCalculators.length + 1,
+          });
+        }
+      });
+
+      await syncService.saveToCloud(user.uid, mergedCalculators);
+      setCalculators(mergedCalculators);
+      setShowMergeOption(false);
+    } catch (error) {
+      console.error("Sync failed:", error);
+    }
+  };
+
+  const handleCalculatorDataChange = useCallback((id, data) => {
+    setCalculators((prev) =>
+      prev.map((calc) =>
+        calc.id === id
+          ? {
+              ...calc,
+              assignments: data.assignments,
+              desiredGrade: data.desiredGrade,
+            }
+          : calc
+      )
+    );
+  }, []);
 
   return (
     <div className="min-h-screen w-full">
@@ -87,21 +198,26 @@ const App = () => {
                   </span>
                 </div>
               </div>
-
-              <button
-                onClick={toggleTheme}
-                className="flex-shrink-0 p-3 min-h-[60px] flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
-              >
-                {theme === "light" ? "🌙" : "☀️"}
-              </button>
+              <div className="flex items-center gap-2">
+                <AuthButton />
+                <button
+                  onClick={toggleTheme}
+                  className="flex-shrink-0 p-3 min-h-[60px] flex items-center rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                >
+                  {theme === "light" ? "🌙" : "☀️"}
+                </button>
+              </div>
             </div>
           </div>
-          <Button
-            onClick={addCalculator}
-            className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white shadow-sm"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add New Subject
-          </Button>
+          <div className="flex items-center">
+            <Button
+              onClick={addCalculator}
+              className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white shadow-sm"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add New Subject
+            </Button>
+            <SyncButton onSync={handleSync} showMergeOption={showMergeOption} />
+          </div>
         </header>
         <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {calculators.map((calc) => (
@@ -113,6 +229,7 @@ const App = () => {
               initialDesiredGrade={calc.desiredGrade}
               onDelete={removeCalculator}
               onNameChange={updateCalculatorName}
+              onDataChange={handleCalculatorDataChange}
             />
           ))}
         </main>
