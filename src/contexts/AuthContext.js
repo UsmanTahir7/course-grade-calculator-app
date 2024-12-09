@@ -25,7 +25,16 @@ export function AuthProvider({ children }) {
     return signInWithPopup(auth, provider);
   };
 
-  const signOut = () => firebaseSignOut(auth);
+  const signOut = async () => {
+    await firebaseSignOut(auth);
+    // Restore local storage state
+    const localData = {
+      calculators: JSON.parse(localStorage.getItem("calculators") || "[]"),
+      theme: localStorage.getItem("theme") || "light",
+      gpaGrades: JSON.parse(localStorage.getItem("gpaGrades") || "[]"),
+    };
+    document.documentElement.classList.toggle("dark", localData.theme === "dark");
+  };
 
   const value = {
     user,

@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { useGradeCalculations } from "../hooks/useGradeCalculations";
+import { useGpa } from "../contexts/GpaContext";
 
 export const GradeCalculator = ({
   id,
@@ -21,6 +22,7 @@ export const GradeCalculator = ({
     assignments,
     desiredGrade
   );
+  const { getGradeInfo, currentScale } = useGpa(); // Updated to include currentScale
 
   useEffect(() => {
     setAssignments(initialAssignments || []);
@@ -71,6 +73,9 @@ export const GradeCalculator = ({
     reorderedAssignments.splice(result.destination.index, 0, removed);
     setAssignments(reorderedAssignments);
   };
+
+  const verticalSeparator =
+    "mx-2 h-4 w-[1px] bg-teal-700/30 dark:bg-teal-300/30 self-center";
 
   return (
     <Card className="h-full bg-white dark:bg-gray-800 shadow-md">
@@ -151,6 +156,7 @@ export const GradeCalculator = ({
                           min="0"
                           max="100"
                           className="w-[30%] dark:text-white bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          onWheel={(e) => e.target.blur()}
                         />
                         <Button
                           variant="destructive"
@@ -181,9 +187,21 @@ export const GradeCalculator = ({
 
           <div className="space-y-2">
             <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20">
-              <h3 className="text-lg font-semibold text-teal-900 dark:text-teal-100">
-                {`Current Grade: ${getCurrentGrade}`}
-              </h3>
+              <div className="flex items-center space-x-2 text-lg font-semibold text-teal-900 dark:text-teal-100 whitespace-nowrap">
+                <span>Current Grade: {getCurrentGrade}%</span>
+                <span className={verticalSeparator} />
+                <span>
+                  {getGradeInfo(parseFloat(getCurrentGrade))?.grade || "N/A"}
+                </span>
+                <span className={verticalSeparator} />
+                <span>
+                  {(getGradeInfo(parseFloat(getCurrentGrade))?.points ??
+                    "N/A") === "N/A"
+                    ? "N/A"
+                    : getGradeInfo(parseFloat(getCurrentGrade))?.points ||
+                      "N/A"}
+                </span>
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20">
               <div className="flex items-center gap-4">
@@ -194,7 +212,7 @@ export const GradeCalculator = ({
                   placeholder="Desired Grade"
                   min="0"
                   max="100"
-                  className="w-[50%] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-[40%] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <h3 className="text-lg font-semibold text-teal-900 dark:text-teal-100">
                   {`Required: ${getRequiredGrade}`}

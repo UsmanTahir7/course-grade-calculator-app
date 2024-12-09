@@ -78,7 +78,7 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                   onClick={clearForm}
                   className="bg-gray-500 hover:bg-gray-600 text-white"
                 >
-                  Reset
+                  Clear
                 </Button>
                 <Button
                   type="button"
