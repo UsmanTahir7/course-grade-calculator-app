@@ -1,4 +1,5 @@
 export function parseSyllabus(text) {
+  const subjectName = extractSubjectName(text);
   const lines = text.split("\n");
   const assignments = [];
 
@@ -42,7 +43,6 @@ export function parseSyllabus(text) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Table structure detection
     if (tableHeaderPattern.test(line)) {
       inTable = true;
       continue;
@@ -99,64 +99,97 @@ export function parseSyllabus(text) {
     }
   }
 
-  return assignments.sort((a, b) => Number(a.weight) - Number(b.weight));
-}
+  return {
+    name: subjectName,
+    assignments: assignments.sort(
+      (a, b) => Number(a.weight) - Number(b.weight)
+    ),
+  };
 
-function cleanAssignmentName(name) {
-  return name
-    .replace(
-      /^(?:Assignment|Quiz|Lab|Project|Tutorial|Other|Term|Final|Group)\s*(?:\d*:?\s*|-\s*)/i,
-      ""
-    )
-    .replace(/\s*[-–—]\s*.*$/, "")
-    .replace(/\([^)]*\)/g, "")
-    .replace(/\d{4}$/, "")
-    .replace(/\s+/g, " ")
-    .replace(/^\d+\s*[-:.)]?\s*/, "")
-    .trim();
-}
-
-function isValidAssignmentName(name, invalidTokens) {
-  if (!name || name.length < 2 || name.length > 50) return false;
-  if (/^\d+$/.test(name)) return false;
-  if (invalidTokens.some((token) => name.toLowerCase().includes(token)))
-    return false;
-  if (!/[a-zA-Z]/.test(name)) return false;
-  if (/^[a-z]$/i.test(name)) return false;
-  return true;
-}
-
-function extractFormattedDate(line) {
-  const dateMatch = line.match(
-    /(?:\d{4}-\d{2}-\d{2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{0,4})/i
-  );
-  if (!dateMatch) return null;
-
-  let date = dateMatch[0].trim();
-  if (!date.includes("202")) {
-    date = date.replace(/\s*(?:st|nd|rd|th)/, "") + " 2024";
+  function cleanAssignmentName(name) {
+    return name
+      .replace(
+        /^(?:Assignment|Quiz|Lab|Project|Tutorial|Other|Term|Final|Group)\s*(?:\d*:?\s*|-\s*)/i,
+        ""
+      )
+      .replace(/\s*[-–—]\s*.*$/, "")
+      .replace(/\([^)]*\)/g, "")
+      .replace(/\d{4}$/, "")
+      .replace(/\s+/g, " ")
+      .replace(/^\d+\s*[-:.)]?\s*/, "")
+      .trim();
   }
-  return date;
-}
 
-function isPolicyText(text) {
-  const policyPatterns = [
-    /penalty/i,
-    /policy/i,
-    /submit/i,
-    /required/i,
-    /late/i,
-    /must/i,
-    /minimum/i,
-    /maximum/i,
-    /guidelines?/i,
-  ];
-  return policyPatterns.some((pattern) => pattern.test(text));
-}
+  function extractSubjectName(text) {
+    const lines = text.split("\n");
 
-function isDuplicateAssignment(assignments, name, weight) {
-  return assignments.some((a) => {
-    const normalize = (str) => str.toLowerCase().replace(/\W/g, "");
-    return normalize(a.name) === normalize(name) && a.weight === weight;
-  });
+    const courseCodePattern = /([A-Z]{2,4})\s*[-]?\s*(\d{2,4}[A-Z]?\d*)/;
+
+    const subjectPatterns = [
+      /^Course(?:\s+Title)?[:|\s]+([^(\n]+)/i,
+      /^Subject[:|\s]+([^(\n]+)/i,
+      courseCodePattern,
+    ];
+
+    for (let line of lines) {
+      line = line.trim();
+
+      for (let pattern of subjectPatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          if (pattern === courseCodePattern) {
+            return `${match[1]} ${match[2]}`;
+          }
+          return match[1].trim().replace(/\s+/g, " ");
+        }
+      }
+    }
+
+    return "";
+  }
+
+  function isValidAssignmentName(name, invalidTokens) {
+    if (!name || name.length < 2 || name.length > 50) return false;
+    if (/^\d+$/.test(name)) return false;
+    if (invalidTokens.some((token) => name.toLowerCase().includes(token)))
+      return false;
+    if (!/[a-zA-Z]/.test(name)) return false;
+    if (/^[a-z]$/i.test(name)) return false;
+    return true;
+  }
+
+  function extractFormattedDate(line) {
+    const dateMatch = line.match(
+      /(?:\d{4}-\d{2}-\d{2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{0,4})/i
+    );
+    if (!dateMatch) return null;
+
+    let date = dateMatch[0].trim();
+    if (!date.includes("202")) {
+      date = date.replace(/\s*(?:st|nd|rd|th)/, "") + " 2024";
+    }
+    return date;
+  }
+
+  function isPolicyText(text) {
+    const policyPatterns = [
+      /penalty/i,
+      /policy/i,
+      /submit/i,
+      /required/i,
+      /late/i,
+      /must/i,
+      /minimum/i,
+      /maximum/i,
+      /guidelines?/i,
+    ];
+    return policyPatterns.some((pattern) => pattern.test(text));
+  }
+
+  function isDuplicateAssignment(assignments, name, weight) {
+    return assignments.some((a) => {
+      const normalize = (str) => str.toLowerCase().replace(/\W/g, "");
+      return normalize(a.name) === normalize(name) && a.weight === weight;
+    });
+  }
 }

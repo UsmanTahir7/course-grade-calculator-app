@@ -6,10 +6,7 @@ import { Button } from "./components/ui/button";
 import { GradeCalculator } from "./components/GradeCalculator";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { SyncButton } from "./components/SyncButton";
 import { syncService } from "./services/syncService";
-import { SyllabusParseModal } from "./components/SyllabusParseModal";
-import { parseSyllabus } from "./utils/syllabusParser";
 import { AddSubjectModal } from "./components/AddSubjectModal";
 import { InfoModal } from "./components/InfoModal";
 import { GpaProvider } from "./contexts/GpaContext";
@@ -19,14 +16,13 @@ const App = () => {
   const [calculators, setCalculators] = useState([]);
   const [theme, setTheme] = useState("light");
   const [gpaGrades, setGpaGrades] = useState([]);
-  const [showMergeOption, setShowMergeOption] = useState(false);
-  const [isSyllabusModalOpen, setIsSyllabusModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [dataSource, setDataSource] = useState("local");
   const [isGpaModalOpen, setIsGpaModalOpen] = useState(false);
   const { user } = useAuth();
+  const [showCalculatorMerge, setShowCalculatorMerge] = useState(false);
 
   const applyTheme = (newTheme) => {
     setTheme(newTheme);
@@ -38,22 +34,6 @@ const App = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     applyTheme(newTheme);
     localStorage.setItem("theme", newTheme);
-  };
-
-  const isCalculatorDifferent = (calc1, calc2) => {
-    if (!calc1 || !calc2) return true;
-    if (calc1.name !== calc2.name) return true;
-    if (calc1.desiredGrade !== calc2.desiredGrade) return true;
-    if (calc1.assignments.length !== calc2.assignments.length) return true;
-
-    return calc1.assignments.some((assignment1, index) => {
-      const assignment2 = calc2.assignments[index];
-      return (
-        assignment1.name !== assignment2.name ||
-        assignment1.grade !== assignment2.grade ||
-        assignment1.weight !== assignment2.weight
-      );
-    });
   };
 
   useEffect(() => {
@@ -73,27 +53,15 @@ const App = () => {
           setGpaGrades(cloudData?.gpaGrades || []);
           setDataSource("cloud");
 
-          const localData = {
-            calculators: JSON.parse(
-              localStorage.getItem("calculators") || "[]"
-            ),
-            theme: localStorage.getItem("theme") || "light",
-            gpaGrades: JSON.parse(localStorage.getItem("gpaGrades") || "[]"),
-          };
+          const localCalculators = JSON.parse(
+            localStorage.getItem("calculators") || "[]"
+          );
+          const hasCalculatorChanges = syncService.hasCalculatorChanges(
+            localCalculators,
+            cloudData?.calculators
+          );
 
-          const hasDifferentData =
-            localData.calculators.some((localCalc) => {
-              return !cloudData?.calculators?.some(
-                (cloudCalc) => !isCalculatorDifferent(localCalc, cloudCalc)
-              );
-            }) ||
-            localData.theme !== cloudData?.theme ||
-            syncService.areGpaGradesDifferent(
-              localData.gpaGrades,
-              cloudData?.gpaGrades
-            );
-
-          setShowMergeOption(hasDifferentData);
+          setShowCalculatorMerge(hasCalculatorChanges);
         } else {
           const localCalculators = JSON.parse(
             localStorage.getItem("calculators") || "[]"
@@ -106,7 +74,7 @@ const App = () => {
           applyTheme(localTheme);
           setGpaGrades(localGpaGrades);
           setDataSource("local");
-          setShowMergeOption(false);
+          setShowCalculatorMerge(false);
         }
       } catch (error) {
         console.error("Failed to initialize data:", error);
@@ -129,7 +97,7 @@ const App = () => {
           theme,
           gpaGrades,
         });
-      }, 1000);
+      }, 400);
       return () => clearTimeout(timeoutId);
     }
   }, [calculators, theme, gpaGrades, user, dataSource]);
@@ -170,28 +138,6 @@ const App = () => {
     );
   };
 
-  const handleSync = async () => {
-    if (!user) return;
-
-    try {
-      const localData = {
-        calculators: JSON.parse(localStorage.getItem("calculators") || "[]"),
-        theme: localStorage.getItem("theme") || "light",
-        gpaGrades: JSON.parse(localStorage.getItem("gpaGrades") || "[]"),
-      };
-      const cloudData = await syncService.loadFromCloud(user.uid);
-      const mergedData = syncService.mergeData(localData, cloudData);
-
-      await syncService.saveToCloud(user.uid, mergedData);
-      setCalculators(mergedData.calculators);
-      applyTheme(mergedData.theme);
-      setGpaGrades(mergedData.gpaGrades);
-      setShowMergeOption(false);
-    } catch (error) {
-      console.error("Sync failed:", error);
-    }
-  };
-
   const handleCalculatorDataChange = useCallback((id, data) => {
     setCalculators((prev) =>
       prev.map((calc) =>
@@ -206,21 +152,28 @@ const App = () => {
     );
   }, []);
 
-  const handleSyllabusParse = (syllabusText) => {
-    const parsedAssignments = parseSyllabus(syllabusText);
-    if (Array.isArray(parsedAssignments) && parsedAssignments.length > 0) {
-      setCalculators((prev) => {
-        const newId = Math.max(...prev.map((calc) => calc.id), 0) + 1;
-        return [
-          {
-            id: newId,
-            name: `Subject ${newId}`,
-            assignments: parsedAssignments,
-            desiredGrade: "",
-          },
-          ...prev,
-        ];
+  const handleCalculatorMerge = async () => {
+    if (!user) return;
+
+    try {
+      const localCalculators = JSON.parse(
+        localStorage.getItem("calculators") || "[]"
+      );
+      const cloudData = await syncService.loadFromCloud(user.uid);
+      const mergedCalculators = syncService.mergeCalculators(
+        localCalculators,
+        cloudData?.calculators
+      );
+
+      await syncService.saveToCloud(user.uid, {
+        ...cloudData,
+        calculators: mergedCalculators,
       });
+
+      setCalculators(mergedCalculators);
+      setShowCalculatorMerge(false);
+    } catch (error) {
+      console.error("Calculator merge failed:", error);
     }
   };
 
@@ -311,10 +264,14 @@ const App = () => {
               >
                 <Plus className="mr-2 h-4 w-4" /> Add New Subject
               </Button>
-              <SyncButton
-                onSync={handleSync}
-                showMergeOption={showMergeOption}
-              />
+              {showCalculatorMerge && (
+                <Button
+                  onClick={handleCalculatorMerge}
+                  className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
+                >
+                  Merge Local Calculators
+                </Button>
+              )}
             </div>
           </header>
           <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -331,11 +288,6 @@ const App = () => {
               />
             ))}
           </main>
-          <SyllabusParseModal
-            isOpen={isSyllabusModalOpen}
-            onClose={() => setIsSyllabusModalOpen(false)}
-            onParse={handleSyllabusParse}
-          />
           <AddSubjectModal
             isOpen={isAddSubjectModalOpen}
             onClose={() => setIsAddSubjectModalOpen(false)}

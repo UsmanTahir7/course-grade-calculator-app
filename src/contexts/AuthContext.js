@@ -1,10 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth } from '../lib/firebase';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut as firebaseSignOut 
-} from 'firebase/auth';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { auth } from "../lib/firebase";
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
 
 const AuthContext = createContext();
 
@@ -27,13 +27,15 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     await firebaseSignOut(auth);
-    // Restore local storage state
     const localData = {
       calculators: JSON.parse(localStorage.getItem("calculators") || "[]"),
       theme: localStorage.getItem("theme") || "light",
       gpaGrades: JSON.parse(localStorage.getItem("gpaGrades") || "[]"),
     };
-    document.documentElement.classList.toggle("dark", localData.theme === "dark");
+    document.documentElement.classList.toggle(
+      "dark",
+      localData.theme === "dark"
+    );
   };
 
   const value = {

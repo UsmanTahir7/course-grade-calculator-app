@@ -22,7 +22,7 @@ export const GradeCalculator = ({
     assignments,
     desiredGrade
   );
-  const { getGradeInfo, currentScale } = useGpa(); // Updated to include currentScale
+  const { getGradeInfo } = useGpa();
 
   useEffect(() => {
     setAssignments(initialAssignments || []);
@@ -187,19 +187,21 @@ export const GradeCalculator = ({
 
           <div className="space-y-2">
             <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20">
-              <div className="flex items-center space-x-2 text-lg font-semibold text-teal-900 dark:text-teal-100 whitespace-nowrap">
-                <span>Current Grade: {getCurrentGrade}%</span>
+              <div className="flex flex-wrap items-center space-x-2 text-lg font-semibold text-teal-900 dark:text-teal-100 whitespace-nowrap">
+                <span>Grade: {getCurrentGrade}%</span>
                 <span className={verticalSeparator} />
                 <span>
                   {getGradeInfo(parseFloat(getCurrentGrade))?.grade || "N/A"}
                 </span>
                 <span className={verticalSeparator} />
                 <span>
+                  GPA:{" "}
                   {(getGradeInfo(parseFloat(getCurrentGrade))?.points ??
                     "N/A") === "N/A"
                     ? "N/A"
-                    : getGradeInfo(parseFloat(getCurrentGrade))?.points ||
-                      "N/A"}
+                    : Number(
+                        getGradeInfo(parseFloat(getCurrentGrade))?.points
+                      ).toFixed(1)}
                 </span>
               </div>
             </div>

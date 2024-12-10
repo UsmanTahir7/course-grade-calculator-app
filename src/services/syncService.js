@@ -5,11 +5,7 @@ export const syncService = {
   async saveToCloud(userId, data) {
     if (!userId) return;
     try {
-      await setDoc(doc(db, "calculators", userId), {
-        calculators: data.calculators,
-        theme: data.theme,
-        gpaGrades: data.gpaGrades,
-      });
+      await setDoc(doc(db, "calculators", userId), data);
     } catch (error) {
       console.error("Error saving to cloud:", error);
     }
@@ -21,8 +17,7 @@ export const syncService = {
       const docRef = doc(db, "calculators", userId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        return this.validateData(data);
+        return this.validateData(docSnap.data());
       }
       return null;
     } catch (error) {
@@ -31,31 +26,54 @@ export const syncService = {
     }
   },
 
-  mergeData(localData, cloudData) {
-    const mergedData = {
-      calculators: this.mergeCalculators(
-        localData.calculators,
-        cloudData?.calculators
-      ),
-      theme: localData.theme || cloudData?.theme || "light",
-      gpaGrades: this.mergeGpaGrades(localData.gpaGrades, cloudData?.gpaGrades),
-    };
-    return mergedData;
+  areCalculatorsDifferent(calc1, calc2) {
+    if (!calc1 || !calc2) return true;
+    if (calc1.name !== calc2.name) return true;
+    if (calc1.desiredGrade !== calc2.desiredGrade) return true;
+    if (!calc1.assignments || !calc2.assignments) return true;
+    if (calc1.assignments.length !== calc2.assignments.length) return true;
+
+    return calc1.assignments.some((assignment1, index) => {
+      const assignment2 = calc2.assignments[index];
+      return (
+        assignment1.name !== assignment2.name ||
+        assignment1.grade !== assignment2.grade ||
+        assignment1.weight !== assignment2.weight
+      );
+    });
   },
 
-  mergeCalculators(localCalculators, cloudCalculators) {
-    const localArray = Array.isArray(localCalculators) ? localCalculators : [];
-    const cloudArray = Array.isArray(cloudCalculators) ? cloudCalculators : [];
+  hasCalculatorChanges(localCalcs, cloudCalcs) {
+    if (!Array.isArray(localCalcs) || !Array.isArray(cloudCalcs)) return true;
+    return localCalcs.some(
+      (localCalc) =>
+        !cloudCalcs.some(
+          (cloudCalc) => !this.areCalculatorsDifferent(localCalc, cloudCalc)
+        )
+    );
+  },
+
+  mergeCalculators(localCalcs, cloudCalcs) {
+    const localArray = Array.isArray(localCalcs) ? localCalcs : [];
+    const cloudArray = Array.isArray(cloudCalcs) ? cloudCalcs : [];
 
     const mergedMap = new Map();
+    let maxId = 0;
 
-    cloudArray.forEach((item) => {
-      mergedMap.set(item.id, item);
+    cloudArray.forEach((calc) => {
+      mergedMap.set(calc.id, calc);
+      maxId = Math.max(maxId, calc.id);
     });
 
-    localArray.forEach((item) => {
-      if (!mergedMap.has(item.id)) {
-        mergedMap.set(item.id, item);
+    localArray.forEach((calc) => {
+      if (!mergedMap.has(calc.id)) {
+        maxId++;
+        mergedMap.set(maxId, { ...calc, id: maxId });
+      } else {
+        if (this.areCalculatorsDifferent(mergedMap.get(calc.id), calc)) {
+          maxId++;
+          mergedMap.set(maxId, { ...calc, id: maxId });
+        }
       }
     });
 
@@ -66,8 +84,8 @@ export const syncService = {
     if (!Array.isArray(grades1) || !Array.isArray(grades2)) return true;
     if (grades1.length !== grades2.length) return true;
 
-    const sorted1 = [...grades1].sort((a, b) => (b.min || 0) - (a.min || 0));
-    const sorted2 = [...grades2].sort((a, b) => (b.min || 0) - (a.min || 0));
+    const sorted1 = [...grades1].sort((a, b) => b.min - a.min);
+    const sorted2 = [...grades2].sort((a, b) => b.min - a.min);
 
     return sorted1.some((grade1, index) => {
       const grade2 = sorted2[index];
@@ -77,20 +95,6 @@ export const syncService = {
         grade1.points !== grade2.points
       );
     });
-  },
-
-  mergeGpaGrades(localGrades, cloudGrades) {
-    const localArray = Array.isArray(localGrades) ? localGrades : [];
-    const cloudArray = Array.isArray(cloudGrades) ? cloudGrades : [];
-
-    if (
-      localArray.length > 0 &&
-      this.areGpaGradesDifferent(localArray, cloudArray)
-    ) {
-      return localArray;
-    }
-
-    return cloudArray.length > 0 ? cloudArray : localArray;
   },
 
   validateData(data) {

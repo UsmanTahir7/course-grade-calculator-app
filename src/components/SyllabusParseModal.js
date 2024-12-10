@@ -34,7 +34,7 @@ export function SyllabusParseModal({ isOpen, onClose, onParse }) {
             <div className="flex gap-2">
               <Button
                 type="button"
-                className="bg-gray-500 hover:bg-gray-600 text-white"
+                className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
                 onClick={onClose}
               >
                 Cancel

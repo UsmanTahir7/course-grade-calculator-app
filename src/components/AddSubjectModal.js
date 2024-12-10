@@ -25,19 +25,27 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
     onClose();
   };
 
-  const handleSyllabusParse = (parsedAssignments) => {
-    if (Array.isArray(parsedAssignments) && parsedAssignments.length > 0) {
-      const formattedAssignments = parsedAssignments.map((assignment) => {
-        return {
-          name: assignment.name || "",
-          grade: assignment.grade || "",
-          weight: assignment.weight || "",
-        };
-      });
+  const handleSyllabusParse = (parsedData) => {
+    if (
+      parsedData &&
+      parsedData.assignments &&
+      Array.isArray(parsedData.assignments)
+    ) {
+      if (parsedData.name) {
+        setTitle(parsedData.name);
+      }
+
+      const formattedAssignments = parsedData.assignments.map((assignment) => ({
+        name: assignment.name || "",
+        grade: assignment.grade || "",
+        weight: assignment.weight || "",
+      }));
+
       setAssignments(formattedAssignments);
     } else {
       setAssignments([{ name: "", grade: "", weight: "" }]);
     }
+
     setIsSyllabusModalOpen(false);
   };
 
@@ -76,7 +84,7 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                 <Button
                   type="button"
                   onClick={clearForm}
-                  className="bg-gray-500 hover:bg-gray-600 text-white"
+                  className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
                 >
                   Clear
                 </Button>
@@ -181,7 +189,7 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
                                 className="w-[30%] dark:text-white bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <Button
-                                type="button" 
+                                type="button"
                                 className="dark:text-white"
                                 variant="destructive"
                                 size="icon"
@@ -202,31 +210,31 @@ export function AddSubjectModal({ isOpen, onClose, onAdd }) {
           </div>
 
           <div className="space-y-4">
-  <Button
-    type="button"
-    onClick={addRow}
-    variant="outline"
-    className="w-full border-dashed border-2 dark:text-white hover:border-solid hover:bg-teal-50 dark:hover:bg-teal-900/50"
-  >
-    <Plus className="mr-2 h-4 w-4" /> Add Assignment
-  </Button>
-  
-  <div className="flex justify-end gap-2">
-    <Button
-      type="button"
-      onClick={onClose}
-      className="bg-gray-500 hover:bg-gray-600 text-white"
-    >
-      Cancel
-    </Button>
-    <Button
-      type="submit"
-      className="bg-teal-600 hover:bg-teal-700 text-white"
-    >
-      Add Subject
-    </Button>
-  </div>
-</div>
+            <Button
+              type="button"
+              onClick={addRow}
+              variant="outline"
+              className="w-full border-dashed border-2 dark:text-white hover:border-solid hover:bg-teal-50 dark:hover:bg-teal-900/50"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Assignment
+            </Button>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                onClick={onClose}
+                className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Add Subject
+              </Button>
+            </div>
+          </div>
         </form>
       </div>
 

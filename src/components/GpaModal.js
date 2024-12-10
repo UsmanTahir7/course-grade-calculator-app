@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useGpa } from "../contexts/GpaContext";
-import { Settings, X, Plus, Trash2 } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
+import { Settings, X, Plus, Trash2, GripVertical } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { syncService } from "../services/syncService";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 const DEFAULT_SCALE = {
   name: "4.0 Scale",
@@ -26,6 +28,55 @@ const DEFAULT_SCALE = {
 
 export function GpaModal({ isOpen, onClose, calculators }) {
   const { grades, setGrades, calculateOverallGPA } = useGpa();
+  const { user } = useAuth();
+  const [showImportButton, setShowImportButton] = useState(false);
+
+  useEffect(() => {
+    const checkLocalGrades = async () => {
+      try {
+        if (!user) return;
+
+        const localGrades = JSON.parse(
+          localStorage.getItem("gpaGrades") || "[]"
+        );
+        const cloudData = await syncService.loadFromCloud(user.uid);
+
+        const isDifferentFromDefault = await syncService.areGpaGradesDifferent(
+          localGrades,
+          DEFAULT_SCALE.grades
+        );
+        const isDifferentFromCloud = await syncService.areGpaGradesDifferent(
+          localGrades,
+          cloudData?.gpaGrades || []
+        );
+
+        setShowImportButton(isDifferentFromDefault && isDifferentFromCloud);
+      } catch (error) {
+        console.error("Error checking local grades:", error);
+      }
+    };
+
+    checkLocalGrades().catch(console.error);
+  }, [user]);
+
+  const importLocalGrades = async () => {
+    try {
+      if (!user) return;
+
+      const localGrades = JSON.parse(localStorage.getItem("gpaGrades") || "[]");
+      const cloudData = await syncService.loadFromCloud(user.uid);
+
+      await syncService.saveToCloud(user.uid, {
+        ...cloudData,
+        gpaGrades: localGrades,
+      });
+
+      setGrades(localGrades);
+      setShowImportButton(false);
+    } catch (error) {
+      console.error("Error importing local grades:", error);
+    }
+  };
 
   const handleGradeChange = (index, field, value) => {
     const updated = [...grades];
@@ -47,7 +98,7 @@ export function GpaModal({ isOpen, onClose, calculators }) {
   };
 
   const addGrade = () => {
-    setGrades([...grades, { id: uuidv4(), min: "", grade: "", points: "" }]);
+    setGrades([...grades, { min: "", grade: "", points: "" }]);
   };
 
   const removeGrade = (index) => {
@@ -56,6 +107,14 @@ export function GpaModal({ isOpen, onClose, calculators }) {
 
   const resetGrades = () => {
     setGrades(DEFAULT_SCALE.grades);
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const reorderedGrades = Array.from(grades);
+    const [removed] = reorderedGrades.splice(result.source.index, 1);
+    reorderedGrades.splice(result.destination.index, 0, removed);
+    setGrades(reorderedGrades);
   };
 
   return (
@@ -97,68 +156,118 @@ export function GpaModal({ isOpen, onClose, calculators }) {
                   <h3 className="text-lg font-semibold dark:text-white">
                     Grade Table
                   </h3>
-                  <Button
-                    type="button"
-                    onClick={resetGrades}
-                    className="bg-gray-500 hover:bg-gray-600 text-white"
-                  >
-                    Reset
-                  </Button>
-                </div>
-                <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600">
-                  {grades.map((grade, index) => (
-                    <div
-                      key={grade.id}
-                      className="flex items-center gap-2 w-full bg-gray-50 dark:bg-gray-700/50 p-2"
+                  <div className="flex gap-2">
+                    {showImportButton && (
+                      <Button
+                        onClick={importLocalGrades}
+                        className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
+                      >
+                        Import Local GPA Settings
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={resetGrades}
+                      className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white"
                     >
-                      <div className="flex-1 flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            type="number"
-                            value={grade.min === "" ? "" : grade.min}
-                            onChange={(e) =>
-                              handleGradeChange(index, "min", e.target.value)
-                            }
-                            placeholder="Min %"
-                            className="w-full dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            onWheel={(e) => e.target.blur()}
-                          />
-                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                            ≥
-                          </span>
-                        </div>
-                        <Input
-                          type="text"
-                          value={grade.grade}
-                          onChange={(e) =>
-                            handleGradeChange(index, "grade", e.target.value)
-                          }
-                          placeholder="Letter Grade"
-                          className="flex-1 dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600"
-                        />
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={grade.points === "" ? "" : grade.points}
-                          onChange={(e) =>
-                            handleGradeChange(index, "points", e.target.value)
-                          }
-                          placeholder="GPA Point"
-                          className="flex-1 dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          onWheel={(e) => e.target.blur()}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeGrade(index)}
-                          className="dark:text-white"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                      Reset
+                    </Button>
+                  </div>
                 </div>
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="droppable-grades" type="GRADE">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                      >
+                        {grades.map((grade, index) => (
+                          <Draggable
+                            key={index}
+                            draggableId={`grade-${index}`}
+                            index={index}
+                          >
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="flex items-center gap-2 w-full bg-gray-50 dark:bg-gray-700/50 p-2"
+                              >
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="p-2 cursor-grab active:cursor-grabbing"
+                                >
+                                  <GripVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                </div>
+                                <div className="flex-1 flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <Input
+                                      type="number"
+                                      value={grade.min === "" ? "" : grade.min}
+                                      onChange={(e) =>
+                                        handleGradeChange(
+                                          index,
+                                          "min",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Min %"
+                                      className="w-full dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      onWheel={(e) => e.target.blur()}
+                                    />
+                                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                      ≥
+                                    </span>
+                                  </div>
+                                  <Input
+                                    type="text"
+                                    value={grade.grade}
+                                    onChange={(e) =>
+                                      handleGradeChange(
+                                        index,
+                                        "grade",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Letter Grade"
+                                    className="flex-1 dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600"
+                                  />
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    value={
+                                      grade.points === "" ? "" : grade.points
+                                    }
+                                    onChange={(e) =>
+                                      handleGradeChange(
+                                        index,
+                                        "points",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="GPA Point"
+                                    className="flex-1 dark:text-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    onWheel={(e) => e.target.blur()}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeGrade(index)}
+                                    className="dark:text-white"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
                 <Button
                   onClick={addGrade}
                   variant="outline"
