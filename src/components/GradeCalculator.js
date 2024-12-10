@@ -105,11 +105,24 @@ export const GradeCalculator = ({
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className="max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
                 style={{
                   minHeight: assignments.length > 0 && "auto",
                 }}
               >
+                <div className="flex items-center gap-1 w-full bg-gray-50 dark:bg-gray-700 px-2 py-2 sticky top-0">
+                  <div className="w-[42px]"></div>
+                  <div className="w-[40%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Assignment
+                  </div>
+                  <div className="w-[30%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Grade
+                  </div>
+                  <div className="w-[30%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Weight
+                  </div>
+                  <div className="w-[42px]"></div>
+                </div>
                 {assignments.map((assignment, index) => (
                   <Draggable
                     key={index}
@@ -120,7 +133,7 @@ export const GradeCalculator = ({
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700/50 group"
+                        className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700 group"
                       >
                         <div
                           {...provided.dragHandleProps}

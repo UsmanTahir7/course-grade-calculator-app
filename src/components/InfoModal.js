@@ -46,6 +46,60 @@ export function InfoModal({ isOpen, onClose }) {
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start space-x-3 p-2 rounded-lg bg-teal-50 dark:bg-teal-900/30">
+                <svg
+                  className="w-5 h-5 text-teal-800 dark:text-teal-400 flex-shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-teal-800 dark:text-teal-300 mb-1">
+                    Feedback & Support
+                  </h3>
+                  <p className="text-sm text-teal-700 dark:text-teal-400">
+                    For feedback, suggestions and feature requests:{" "}
+                    <a
+                      href="mailto:coursegradecalculatorapp@gmail.com"
+                      className="underline cursor-pointer hover:text-teal-600 inline-flex items-center gap-1"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href =
+                          "mailto:coursegradecalculatorapp@gmail.com";
+                      }}
+                      aria-label="Send email for feedback"
+                      title="Click to open email client"
+                    >
+                      coursegradecalculatorapp@gmail.com
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3 p-2 rounded-lg bg-teal-50 dark:bg-teal-900/30">
+                <svg
+                  className="w-5 h-5 text-teal-800 dark:text-teal-400 flex-shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-teal-800 dark:text-teal-300 mb-1">
+                    About Data Sync
+                  </h3>
+                  <p className="text-sm text-teal-700 dark:text-teal-400">
+                    Sync buttons help merge your offline data with your cloud
+                    account. If you see import/merge prompts after making
+                    changes while logged in, you can safely ignore them. To
+                    prevent these prompts, you can reset GPA settings or remove
+                    calculators while logged out - this won't affect your cloud
+                    data.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

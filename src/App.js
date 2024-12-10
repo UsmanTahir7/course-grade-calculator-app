@@ -9,7 +9,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { syncService } from "./services/syncService";
 import { AddSubjectModal } from "./components/AddSubjectModal";
 import { InfoModal } from "./components/InfoModal";
-import { GpaProvider } from "./contexts/GpaContext";
+import { GpaProvider, useGpa } from "./contexts/GpaContext";
 import { GpaModal } from "./components/GpaModal";
 
 const App = () => {
@@ -138,6 +138,19 @@ const App = () => {
     );
   };
 
+  const GpaDisplay = ({ calculators }) => {
+    const { calculateOverallGPA } = useGpa();
+    return (
+      <div className="flex-1 flex justify-center">
+        <div className="bg-teal-50 dark:bg-teal-900/30 px-6 py-2 rounded-lg">
+          <span className="text-lg font-semibold text-teal-900 dark:text-teal-100">
+            Overall GPA: {calculateOverallGPA(calculators)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   const handleCalculatorDataChange = useCallback((id, data) => {
     setCalculators((prev) =>
       prev.map((calc) =>
@@ -183,16 +196,22 @@ const App = () => {
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           <header className="space-y-6 mb-4">
             <div className="flex items-center justify-between">
-              <Button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden p-2 rounded-lg"
-              >
-                {isMenuOpen ? (
-                  <X className="h-6 w-6 text-gray-700 dark:text-gray-200" />
-                ) : (
-                  <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="lg:hidden p-2 rounded-lg"
+                >
+                  {isMenuOpen ? (
+                    <X className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+                  ) : (
+                    <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+                  )}
+                </Button>
+
+                <div className="lg:hidden">
+                  <GpaDisplay calculators={calculators} />
+                </div>
+              </div>
 
               <div className="hidden lg:flex flex-1 items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
@@ -206,6 +225,7 @@ const App = () => {
                     calculators={calculators}
                   />
                 </div>
+                <GpaDisplay calculators={calculators} />
                 <div className="flex items-center gap-2">
                   <AuthButton />
                   <Button
@@ -228,7 +248,7 @@ const App = () => {
                       <X className="h-6 w-6" />
                     </Button>
                     <div>
-                      <div className="flex justify-between items-center mt-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between items-center mt-2">
                         <div className="h-[42px] flex gap-2">
                           <InfoModal
                             isOpen={isInfoModalOpen}

@@ -77,7 +77,7 @@ export const syncService = {
       }
     });
 
-    return Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
+    return Array.from(mergedMap.values());
   },
 
   areGpaGradesDifferent(grades1, grades2) {
