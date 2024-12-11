@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { useGradeCalculations } from "../hooks/useGradeCalculations";
+import { useGpa } from "../contexts/GpaContext";
 
 export const GradeCalculator = ({
   id,
@@ -13,6 +14,7 @@ export const GradeCalculator = ({
   onNameChange,
   initialAssignments,
   initialDesiredGrade,
+  onDataChange,
 }) => {
   const [assignments, setAssignments] = useState(initialAssignments || []);
   const [desiredGrade, setDesiredGrade] = useState(initialDesiredGrade || "");
@@ -20,29 +22,39 @@ export const GradeCalculator = ({
     assignments,
     desiredGrade
   );
+  const { getGradeInfo } = useGpa();
 
   useEffect(() => {
-    localStorage.setItem(
-      `gradeCalculator-${id}`,
-      JSON.stringify({ assignments, desiredGrade })
-    );
-  }, [assignments, desiredGrade, id]);
+    setAssignments(initialAssignments || []);
+    setDesiredGrade(initialDesiredGrade || "");
+  }, [initialAssignments, initialDesiredGrade]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onDataChange?.(id, {
+        assignments,
+        desiredGrade,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [assignments, desiredGrade, id, onDataChange]);
 
   const handleInputChange = (index, field, value) => {
-    const updatedAssignments = [...assignments];
-    if (field === "weight") {
-      value = Math.min(100, Math.max(0, Number(value))).toString();
-    }
-    updatedAssignments[index] = {
-      ...updatedAssignments[index],
-      [field]: value,
-    };
-    setAssignments(updatedAssignments);
+    setAssignments((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const handleDesiredGradeChange = (e) => {
-    const value = e.target.value
-    setDesiredGrade(Math.min(100, Math.max(0, Number(value))).toString());
+    const value = e.target.value;
+    if (value === "") {
+      setDesiredGrade("");
+    } else {
+      setDesiredGrade(Math.min(100, Math.max(0, Number(value))).toString());
+    }
   };
 
   const addRow = () => {
@@ -61,6 +73,9 @@ export const GradeCalculator = ({
     reorderedAssignments.splice(result.destination.index, 0, removed);
     setAssignments(reorderedAssignments);
   };
+
+  const verticalSeparator =
+    "mx-2 h-4 w-[1px] bg-teal-700/30 dark:bg-teal-300/30 self-center";
 
   return (
     <Card className="h-full bg-white dark:bg-gray-800 shadow-md">
@@ -87,7 +102,27 @@ export const GradeCalculator = ({
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId={`droppable-${id}`} type="ASSIGNMENT">
             {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef}>
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600"
+                style={{
+                  minHeight: assignments.length > 0 && "auto",
+                }}
+              >
+                <div className="flex items-center gap-1 w-full bg-gray-50 dark:bg-gray-700 px-2 py-2 sticky top-0">
+                  <div className="w-[42px]"></div>
+                  <div className="w-[40%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Assignment
+                  </div>
+                  <div className="w-[30%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Grade
+                  </div>
+                  <div className="w-[30%] font-semibold text-gray-700 dark:text-gray-300 px-1">
+                    Weight
+                  </div>
+                  <div className="w-[42px]"></div>
+                </div>
                 {assignments.map((assignment, index) => (
                   <Draggable
                     key={index}
@@ -98,7 +133,7 @@ export const GradeCalculator = ({
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700/50 group"
+                        className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700 group"
                       >
                         <div
                           {...provided.dragHandleProps}
@@ -134,6 +169,7 @@ export const GradeCalculator = ({
                           min="0"
                           max="100"
                           className="w-[30%] dark:text-white bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          onWheel={(e) => e.target.blur()}
                         />
                         <Button
                           variant="destructive"
@@ -164,9 +200,23 @@ export const GradeCalculator = ({
 
           <div className="space-y-2">
             <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20">
-              <h3 className="text-lg font-semibold text-teal-900 dark:text-teal-100">
-                {`Current Grade: ${getCurrentGrade}`}
-              </h3>
+              <div className="flex flex-wrap items-center space-x-2 text-lg font-semibold text-teal-900 dark:text-teal-100 whitespace-nowrap">
+                <span>Grade: {getCurrentGrade}%</span>
+                <span className={verticalSeparator} />
+                <span>
+                  {getGradeInfo(parseFloat(getCurrentGrade))?.grade || "N/A"}
+                </span>
+                <span className={verticalSeparator} />
+                <span>
+                  GPA:{" "}
+                  {(getGradeInfo(parseFloat(getCurrentGrade))?.points ??
+                    "N/A") === "N/A"
+                    ? "N/A"
+                    : Number(
+                        getGradeInfo(parseFloat(getCurrentGrade))?.points
+                      ).toFixed(1)}
+                </span>
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20">
               <div className="flex items-center gap-4">
@@ -177,7 +227,7 @@ export const GradeCalculator = ({
                   placeholder="Desired Grade"
                   min="0"
                   max="100"
-                  className="w-[50%] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-[40%] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <h3 className="text-lg font-semibold text-teal-900 dark:text-teal-100">
                   {`Required: ${getRequiredGrade}`}
