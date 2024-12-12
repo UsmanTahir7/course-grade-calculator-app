@@ -29,36 +29,50 @@ export function GpaProvider({ children }) {
     const savedGrades = localStorage.getItem("gpaGrades");
     return savedGrades ? JSON.parse(savedGrades) : DEFAULT_SCALE.grades;
   });
+  const [dataSource, setDataSource] = useState("local");
 
   useEffect(() => {
-    if (user) {
-      const loadCloudGrades = async () => {
-        const cloudData = await syncService.loadFromCloud(user.uid);
-        if (cloudData?.gpaGrades) {
-          setGrades(cloudData.gpaGrades);
+    const initializeGrades = async () => {
+      if (user) {
+        try {
+          const cloudData = await syncService.loadFromCloud(user.uid);
+          if (cloudData?.gpaGrades) {
+            setGrades(cloudData.gpaGrades);
+            setDataSource("cloud");
+          }
+        } catch (error) {
+          console.error("Error loading cloud grades:", error);
         }
-      };
-      loadCloudGrades();
-    } else {
-      const savedGrades = localStorage.getItem("gpaGrades");
-      setGrades(savedGrades ? JSON.parse(savedGrades) : DEFAULT_SCALE.grades);
-    }
+      } else {
+        const savedGrades = localStorage.getItem("gpaGrades");
+        if (savedGrades) {
+          setGrades(JSON.parse(savedGrades));
+        }
+        setDataSource("local");
+      }
+    };
+
+    initializeGrades();
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user && dataSource === "local") {
       localStorage.setItem("gpaGrades", JSON.stringify(grades));
-    } else {
+    } else if (user && dataSource === "cloud") {
       const timeoutId = setTimeout(async () => {
-        const cloudData = await syncService.loadFromCloud(user.uid);
-        syncService.saveToCloud(user.uid, {
-          ...cloudData,
-          gpaGrades: grades,
-        });
+        try {
+          const cloudData = await syncService.loadFromCloud(user.uid);
+          await syncService.saveToCloud(user.uid, {
+            ...cloudData,
+            gpaGrades: grades,
+          });
+        } catch (error) {
+          console.error("Error syncing grades to cloud:", error);
+        }
       }, 400);
       return () => clearTimeout(timeoutId);
     }
-  }, [grades, user]);
+  }, [grades, user, dataSource]);
 
   const [currentScale] = useState(DEFAULT_SCALE.max);
 
@@ -121,6 +135,7 @@ export function GpaProvider({ children }) {
     getGradeInfo,
     calculateOverallGPA,
     currentScale,
+    dataSource,
   };
 
   return <GpaContext.Provider value={value}>{children}</GpaContext.Provider>;
