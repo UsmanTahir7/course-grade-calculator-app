@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "./AuthContext";
 import { syncService } from "../services/syncService";
 
@@ -28,13 +27,7 @@ export function GpaProvider({ children }) {
   const { user } = useAuth();
   const [grades, setGrades] = useState(() => {
     const savedGrades = localStorage.getItem("gpaGrades");
-    const initialGrades = savedGrades
-      ? JSON.parse(savedGrades)
-      : DEFAULT_SCALE.grades;
-    return initialGrades.map((grade) => ({
-      ...grade,
-      id: grade.id,
-    }));
+    return savedGrades ? JSON.parse(savedGrades) : DEFAULT_SCALE.grades;
   });
 
   useEffect(() => {
@@ -42,26 +35,13 @@ export function GpaProvider({ children }) {
       const loadCloudGrades = async () => {
         const cloudData = await syncService.loadFromCloud(user.uid);
         if (cloudData?.gpaGrades) {
-          setGrades(
-            cloudData.gpaGrades.map((grade) => ({
-              ...grade,
-              id: grade.id || uuidv4(),
-            }))
-          );
+          setGrades(cloudData.gpaGrades);
         }
       };
       loadCloudGrades();
     } else {
       const savedGrades = localStorage.getItem("gpaGrades");
-      const localGrades = savedGrades
-        ? JSON.parse(savedGrades)
-        : DEFAULT_SCALE.grades;
-      setGrades(
-        localGrades.map((grade) => ({
-          ...grade,
-          id: grade.id || uuidv4(),
-        }))
-      );
+      setGrades(savedGrades ? JSON.parse(savedGrades) : DEFAULT_SCALE.grades);
     }
   }, [user]);
 
